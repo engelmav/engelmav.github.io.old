@@ -1,0 +1,24 @@
+    def add_page_locators(self):
+        # get all objects from module additionalsiteoptionselements
+        # for each object,
+        # patch its find_and_click method to this object
+        for _, scelement in inspect.getmembers(aso_scelements):
+            try:
+                if scelement.method_name is not None:
+                    # Duck punching.
+                    self.add_locator_method(scelement.method_name, scelement, scelement.bind_to)
+            except:
+                # Eat the exception. Duck typing.
+                next
+
+    def add_locator_method(self, method_name, obj, bind_to):
+        #return setattr(self, method_name, types.MethodType(obj.find_and_click.__func__, obj))
+        return setattr(self, method_name, types.MethodType(self.getmember(bind_to).__func__, obj))
+
+
+    def getmember(self, obj, name):
+        #members = dict(inspect.getmembers(obj))
+        #return members[name]
+        return [member
+                for _name, member in inspect.getmembers(obj)
+                if name == _name][0]
