@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="x-ua-compatible" content="ie=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>the slow burn - Fix Perl with Perl</title>
+        <link rel="stylesheet" href="../css/default.css" />
+    </head>
+    <body>
+        <div id="header">
+            <div id="logo">
+                <a href="../">the slow burn</a>
+            </div>
+            <div id="navigation">
+                <a href="../">Home</a>
+                <a href="../about.html">About</a>
+                <a href="../contact.html">Contact</a>
+                <a href="../archive.html">Archive</a>
+            </div>
+        </div>
+
+        <div id="content">
+            <h1>Fix Perl with Perl</h1>
+            <div class="info">
+    Posted on December 26, 2013
+    
+        by Vincent Engelmann
+    
+</div>
+
+<p>I overheard a colleague complaining that all of our Linux CPU checks were reporting “0%” at seemingly random times. I realized I wasn’t quite sure how a Nagios agent would check CPU utilization, so I logged into one of the servers to investigate.</p>
+<p>What I found was an old shell script that was executing <code>mpstat</code> and using <code>tail</code> and <code>nawk</code> to grab the cpu metric. The variable that was meant to catch the CPU usage percentage was defined before hand at 0, so when splitting by whitespace in <code>nawk</code> didn’t work, the variable never obtained the CPU percentage from <code>mpstat</code>. I decided to rewrite the shell script in Perl (it was my preferred approach at the time).</p>
+<p>The hard part came when I realized this same faulty shell script was being used across more than 250 servers.</p>
+<p>I had remembered there were several SSH modules for Perl. Could I in some way leverage them to update the script across all the servers?</p>
+<p>Of course I could!</p>
+<p>First I loaded up the new cpu check:</p>
+<div class="sourceCode"><pre class="sourceCode perl"><code class="sourceCode perl"><span class="kw">my</span> <span class="dt">$contents</span> = <span class="kw">do</span> {
+                  <span class="kw">local</span> <span class="dt">$/</span> = <span class="fu">undef</span>; 
+                  <span class="fu">open</span> <span class="kw">my</span> <span class="dt">$fh2</span>, <span class="kw">&quot;</span><span class="st">&lt;</span><span class="kw">&quot;</span>, <span class="kw">&quot;</span><span class="st">NEW_check_cpu.txt</span><span class="kw">&quot;</span>
+                    <span class="kw">or</span> <span class="fu">die</span> <span class="kw">&quot;</span><span class="st">: could not open file: </span><span class="dt">$!</span><span class="kw">&quot;</span>;
+                  &lt;<span class="dt">$fh2</span>&gt;;
+               };</code></pre></div>
+<p>Then I created the command that I would be using for each server where I needed to replace the shell script:</p>
+<div class="sourceCode"><pre class="sourceCode perl"><code class="sourceCode perl"><span class="kw">my</span> <span class="dt">$command</span> = <span class="kw">&quot;</span><span class="st">cd /home/username/nrpe/libexec &amp;&amp; cp -f check_cpu check_cpu.20130122</span>
+<span class="st">    &amp;&amp; echo -E \'</span><span class="dt">$contents</span><span class="st">\' &gt; check_cpu &amp;&amp; echo success</span><span class="kw">&quot;</span>;</code></pre></div>
+<p>After some wrangling, I managed to get Net:SSH2 to connect to the servers and deploy the Perl script:</p>
+<div class="sourceCode"><pre class="sourceCode perl"><code class="sourceCode perl"><span class="kw">foreach</span> <span class="kw">my</span> <span class="dt">$server</span> ( <span class="dt">@serverlist</span> ){
+	<span class="kw">my</span> <span class="dt">$ssh</span> = <span class="fu">Net::SSH2</span>-&gt;new( trace =&gt; -<span class="dv">1</span> );
+	<span class="kw">if</span> ( !<span class="dt">$ssh</span>-&gt;<span class="dt">connect</span>(<span class="dt">$server</span>) ) {
+		<span class="fu">print</span> <span class="dt">$logfh</span> <span class="kw">&quot;</span><span class="st">could not connect to </span><span class="dt">$server</span><span class="ch">\n</span><span class="kw">&quot;</span>;
+		<span class="kw">next</span>;
+	}
+	<span class="fu">print</span> <span class="dt">$logfh</span> <span class="kw">&quot;</span><span class="st">connected to </span><span class="dt">$server</span><span class="ch">\n</span><span class="kw">&quot;</span>;
+	<span class="dt">$ssh</span>-&gt;<span class="dt">auth_keyboard</span>( <span class="kw">'</span><span class="st">someuser</span><span class="kw">'</span>, <span class="kw">'</span><span class="st">somepasswd</span><span class="kw">'</span>);
+	<span class="fu">print</span> <span class="dt">$logfh</span> <span class="kw">&quot;</span><span class="st">authenticated on </span><span class="dt">$server</span><span class="ch">\n</span><span class="kw">&quot;</span>;
+	<span class="kw">my</span> <span class="dt">$chan</span> = <span class="dt">$ssh</span>-&gt;<span class="dt">channel</span>();
+	<span class="dt">$chan</span>-&gt;<span class="dt">exec</span>( <span class="dt">$command</span> ); <span class="co"># the magic!</span>
+	<span class="kw">my</span> <span class="dt">$successful</span> = <span class="dv">0</span>;
+	<span class="kw">while</span> (&lt;<span class="dt">$chan</span>&gt;) {
+		<span class="kw">if</span> ( <span class="kw">/</span><span class="ot">success</span><span class="kw">/</span> ){
+			<span class="fu">print</span> <span class="dt">$logfh</span> <span class="kw">&quot;</span><span class="st">command successful on </span><span class="dt">$server</span><span class="ch">\n</span><span class="kw">&quot;</span>;
+			<span class="dt">$successful</span> = <span class="dv">1</span>;
+		}
+
+	}
+	<span class="kw">if</span> (<span class="dt">$successful</span> == <span class="dv">0</span>) {
+		<span class="fu">print</span> <span class="dt">$logfh</span> <span class="kw">&quot;</span><span class="st">command NOT successful on </span><span class="dt">$server</span><span class="ch">\n</span><span class="kw">&quot;</span>
+	}
+}</code></pre></div>
+<p>There is one trick here that initially had me stumped for a while. I needed to expand the <code>$command</code> variable in the perl script, but I needed to single quote the command line in the shell in order to prevent the shell from trying to execute or expand variables in the replacement script. But now the backslashes were being interpreted by the shell!</p>
+<p>The answer ended up being the <code>-E</code> option for <code>echo</code> (specifically, <code>disable interpretation of backslash escapes (default)</code>).</p>
+
+        </div>
+
+        <div id="footer">
+            Site proudly generated by
+            <a href="http://jaspervdj.be/hakyll">Hakyll</a>
+        </div>
+    </body>
+</html>
