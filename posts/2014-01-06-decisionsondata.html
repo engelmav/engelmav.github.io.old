@@ -29,6 +29,7 @@
     
 </div>
 
+<h2 id="summary">Summary</h2>
 <p>When my wife and I first moved in, we wanted to make sure we found a spot somewhere between my job and her job. At the time, she used her car to get in (suburbia) but I took the bus. If you’ve ever commuted in New Jersey, I’m sure I don’t have to explain the pain! But I am a big proponent of reducing car usage as much as possible.</p>
 <p>Fortunately the following year, my wife got a job closer to NYC, so it was high time to find a new apartment. I started looking at apartments through the many realestate sites around. In the process, I found myself constantly copying the address of an apartment in a realestate listing, pasting it into Google, and using the map as a visual guide to see how far the apartment was from a bus stop. (The NYC bus station is 10 blocks farther north than the train station, and I worked in midtown at the time, so this was preferable.)</p>
 <p>I thought to myself, there must be a way to automate this.</p>
@@ -42,6 +43,119 @@
 <p>The result? There were some 43,000 routes leaving arbitrary locations and arriving at the Port Authority. A moment of silence befell me as I recognized the logistic immensity of NJ Transit.</p>
 <p>So I took my report of durations of all trips into Manhattan and looked up the town corresponding to the lattitude and longitude using the Yahoo API. I opened up the resulting CSV, sorted by duration, and saw the towns with the shortest trips at the top.</p>
 <p>So we moved to the town with the shortest trip!</p>
+<h2 id="though-process">Though process</h2>
+<p><code>stops</code> will show you the names of stops. For example port authority is id 3511</p>
+<div class="sourceCode"><pre class="sourceCode sql"><code class="sourceCode sql"><span class="kw">select</span> * <span class="kw">from</span> stops <span class="kw">where</span> stop_name <span class="kw">like</span> <span class="st">'%AUTHORITY%'</span></code></pre></div>
+<p>I think the idea behind the below query is that it will show all the stop times of every route where the <code>stop_id</code> is the port authority</p>
+<div class="sourceCode"><pre class="sourceCode sql"><code class="sourceCode sql"><span class="kw">select</span> * <span class="kw">from</span> stop_times <span class="kw">where</span> stop_id = (<span class="kw">select</span> stop_id <span class="kw">from</span> stops <span class="kw">where</span> stop_name <span class="kw">like</span> <span class="st">'%AUTHORITY%'</span>)</code></pre></div>
+<p>And now as a join.</p>
+<div class="sourceCode"><pre class="sourceCode sql"><code class="sourceCode sql"><span class="kw">SELECT</span>
+  StopName.stop_name
+  ,StopTime.arrival_time
+<span class="kw">FROM</span> stops StopName
+
+<span class="kw">LEFT</span> <span class="kw">JOIN</span> stop_times StopTime
+  <span class="kw">ON</span> StopName.stop_id = StopTime.stop_id
+<span class="kw">WHERE</span>
+  StopName.stop_name <span class="kw">like</span> <span class="st">'%AUTHORITY%'</span></code></pre></div>
+<p>But we need to figure out what routes these correspond to. Turns out there’s a routes table. It has route_id, route_short_name, route_type Is <code>route_id</code> listed in the query on StopName above? I don’t think so. But there may be a couple of tables linking the two concepts. Remember, we want:</p>
+<ol style="list-style-type: lower-alpha">
+<li>“What routes go to this stop?</li>
+<li>“What stops are on those routes?”</li>
+</ol>
+<p>We have trip_id. What does the trips table show us?</p>
+<p>There is a <code>route_id</code> listed in <code>trips</code>. Let’s get the SQL just to show the <code>route_id</code> and link it to <code>trips</code>.</p>
+<div class="sourceCode"><pre class="sourceCode sql"><code class="sourceCode sql"><span class="kw">SELECT</span>
+<span class="co">--  *</span>
+  StopName.stop_name
+  ,StopTime.arrival_time
+  ,Trip.route_id
+<span class="kw">FROM</span> stops StopName
+
+<span class="kw">LEFT</span> <span class="kw">JOIN</span> stop_times StopTime
+  <span class="kw">ON</span> StopName.stop_id = StopTime.stop_id
+<span class="kw">LEFT</span> <span class="kw">JOIN</span> trips Trip
+  <span class="kw">ON</span> StopTime.trip_id = Trip.trip_id 
+<span class="kw">WHERE</span>
+  StopName.stop_name <span class="kw">like</span> <span class="st">'%AUTHORITY%'</span></code></pre></div>
+<p>So what is listed in routes that interests us? There is nothing “visible” in route. The <code>route_long_name or</code>route_short_name` might have helped up but they are just numerics and are not foreign keys that we can look up. So, this might be a dead end.</p>
+<p>http://www.google.com/help/hc/images/transitpartners_1106431_objecttablelarge_en.gif</p>
+<p>We might want to start from the trip table since it ultimately has links to everything. We see:</p>
+<p>A trip has many stop times, which each have one stop A trip has many shapes, which shows order of sequence, distance, etc</p>
+<p>But, a <code>route</code> has many trips…</p>
+<p>So maybe we should start from route. Let’s try a query.</p>
+<div class="sourceCode"><pre class="sourceCode sql"><code class="sourceCode sql"><span class="kw">SELECT</span>
+  *
+<span class="kw">FROM</span> routes BusRoute
+
+<span class="kw">LEFT</span> <span class="kw">JOIN</span> trips BusTrip
+  <span class="kw">ON</span> BusRoute.route_id = BusTrip.route_id
+<span class="kw">LEFT</span> <span class="kw">JOIN</span> stop_times BusStopTime
+  <span class="kw">ON</span> BusTrip.trip_id = BusStopTime.trip_id
+<span class="kw">LEFT</span> <span class="kw">JOIN</span> stops BusStop
+  <span class="kw">ON</span> BusStopTime.stop_id = BusStop.stop_id</code></pre></div>
+<p><code>2147429 rows returned (execution time: 23.400 sec; total time: 23.415 sec)</code></p>
+<p>Now we must pair this down to find what? A route or a trip that has a destination of Port Authority and <em>some other</em> stops?</p>
+<p>(Notes from https://developers.google.com/transit/gtfs/reference#TermDefinitions)</p>
+<p>Routes: “Transit routes. A route is a group of trips that are displayed to riders as a single service. So a route HAS MANY trips. Maybe the 113 is a ROUTE.</p>
+<p>So I guess “the 114 is a service”..</p>
+<p>And a Trip: “Trips for each route. A trip is a sequence of two or more stops that occurs at specific time.” So that’s why a trip HAS MANY stop times (stoptime)</p>
+<p>We will get as many items listed as there are routes * trips * stoptimes. And we’re looking for total lapsed time between each of those and the ultimate stop, provided our direction (how do we find that?)</p>
+<div class="sourceCode"><pre class="sourceCode sql"><code class="sourceCode sql"><span class="kw">SELECT</span>
+<span class="co">--  *</span>
+  BusRoute.route_id
+  ,bustrip.trip_id
+  ,bustrip.direction_id
+  ,bustrip.trip_headsign
+  ,BusStopTime.arrival_time
+  ,BusStopTime.departure_time
+  ,busstop.stop_name
+<span class="kw">FROM</span> routes BusRoute
+
+<span class="kw">LEFT</span> <span class="kw">JOIN</span> trips BusTrip
+  <span class="kw">ON</span> BusRoute.route_id = BusTrip.route_id
+<span class="kw">LEFT</span> <span class="kw">JOIN</span> stop_times BusStopTime
+  <span class="kw">ON</span> BusTrip.trip_id = BusStopTime.trip_id
+<span class="kw">LEFT</span> <span class="kw">JOIN</span> stops BusStop
+  <span class="kw">ON</span> BusStopTime.stop_id = BusStop.stop_id
+<span class="kw">LEFT</span> <span class="kw">JOIN</span> pabtBuses
+
+<span class="kw">order</span> <span class="kw">by</span> bustrip.trip_id,BusStopTime.departure_time <span class="kw">Asc</span>  
+<span class="kw">LIMIT</span> <span class="dv">500</span></code></pre></div>
+<p>So how do we find trips that INCLUDE Port Authority at some point?</p>
+<p>Trips (and routes) that include new york would be Route-&gt;trip-&gt;stoptime-&gt;stop.stop_name</p>
+<div class="sourceCode"><pre class="sourceCode sql"><code class="sourceCode sql"><span class="kw">SELECT</span>
+<span class="co">--  *</span>
+  BusRoute.route_id
+  ,bustrip.trip_id
+  ,bustrip.direction_id
+  ,bustrip.trip_headsign
+  ,BusStopTime.arrival_time
+  ,BusStopTime.departure_time
+  ,busstop.stop_name
+<span class="kw">FROM</span> routes BusRoute
+
+<span class="kw">LEFT</span> <span class="kw">JOIN</span> trips BusTrip
+  <span class="kw">ON</span> BusRoute.route_id = BusTrip.route_id
+<span class="kw">LEFT</span> <span class="kw">JOIN</span> stop_times BusStopTime
+  <span class="kw">ON</span> BusTrip.trip_id = BusStopTime.trip_id
+<span class="kw">LEFT</span> <span class="kw">JOIN</span> stops BusStop
+  <span class="kw">ON</span> BusStopTime.stop_id = BusStop.stop_id
+
+<span class="kw">WHERE</span> bustrip.trip_id <span class="kw">IN</span> (
+<span class="kw">SELECT</span>
+ StopTime.trip_id
+<span class="kw">FROM</span> stops StopName
+
+<span class="kw">LEFT</span> <span class="kw">JOIN</span> stop_times StopTime
+  <span class="kw">ON</span> StopName.stop_id = StopTime.stop_id
+<span class="kw">WHERE</span>
+  StopName.stop_name <span class="kw">like</span> <span class="st">'%AUTHORITY%'</span>) 
+
+<span class="kw">order</span> <span class="kw">by</span> bustrip.trip_id,BusStopTime.departure_time <span class="kw">Asc</span>  
+<span class="kw">LIMIT</span> <span class="dv">500</span></code></pre></div>
+<p>Take the string timestamps and make them actual time data types. http://www.postgresql.org/docs/8.3/static/functions-formatting.html</p>
+<p><a href="https://github.com/engelmav/gtfs_analysis/blob/master/gtfs_port_auth.pl">Here’s the eventual query and its reporting code</a>.</p>
 
         </div>
 
