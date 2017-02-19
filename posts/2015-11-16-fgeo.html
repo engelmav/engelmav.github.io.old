@@ -61,6 +61,34 @@ CONTENT <span class="op">=</span> <span class="st">'c'</span>
                 <span class="bu">print</span> <span class="st">&quot;No valid state for given line.&quot;</span>
     <span class="kw">def</span> extractId(<span class="va">self</span>,line):
         <span class="cf">return</span> <span class="va">self</span>.recIdRgx.match(line).group(<span class="dv">1</span>)</code></pre></div>
+CONTENT <span class="op">=</span> <span class="st">'c</span>
+
+<span class="st">    def parseFile(self, filename):</span>
+<span class="st">        state = START</span>
+<span class="st">        recStart = re.compile('</span><span class="op">\*+</span><span class="st">') </span>
+<span class="st">        self.f = None</span>
+<span class="st">        self.f = open(filename, '</span><span class="vs">r')</span>
+<span class="vs">        for line in self.f:</span>
+<span class="vs">            if state is START and recStart.match(line):</span>
+<span class="vs">                state = '</span>CONTENT<span class="st">'</span>
+<span class="st">                self.addressLines = []</span>
+<span class="st">                self.addressLines.append(self.extractId(line))</span>
+<span class="st">                self.addressLines.append(line)</span>
+<span class="st">            elif state is CONTENT and  not recStart.match(line):</span>
+<span class="st">                self.addressLines.append(line)</span>
+<span class="st">            elif state is CONTENT and  recStart.match(line):</span>
+<span class="st">                state = START</span>
+<span class="st">                self.addressList.append(self.addressLines)</span>
+<span class="st">                self.addressLines = []</span>
+<span class="st">                self.addressLines.append(self.extractId(line))</span>
+<span class="st">                self.addressLines.append(line)</span>
+<span class="st">            elif state == START and not recStart.match(line):</span>
+<span class="st">                state = CONTENT</span>
+<span class="st">                self.addressLines.append(line)</span>
+<span class="st">            else:</span>
+<span class="st">                print &quot;No valid state for given line.&quot;</span>
+<span class="st">    def extractId(self,line):</span>
+<span class="st">        return self.recIdRgx.match(line).group(1)</span></code></pre></div>
 
         </div>
 
