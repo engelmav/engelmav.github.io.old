@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="x-ua-compatible" content="ie=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>the slow burn - fzzbzz</title>
+        <link rel="stylesheet" href="../css/default.css" />
+    </head>
+    <body>
+        <div id="header">
+            <div id="logo">
+                <a href="../">the slow burn</a>
+            </div>
+            <div id="navigation">
+                <a href="../">Home</a>
+                <a href="../about.html">About</a>
+                <a href="../contact.html">Contact</a>
+                <a href="../archive.html">Archive</a>
+            </div>
+        </div>
+
+        <div id="content">
+            <h1>fzzbzz</h1>
+            <div class="info">
+    Posted on February  3, 2017
+    
+        by Vincent Engelmann
+    
+</div>
+
+<h1 id="interviewing-responsibly">Interviewing Responsibly</h1>
+<p>What’s a good interview question? Ask yourself what you’re trying to accomplish. Do you consider an interview to be a high-stakes event? It sort of is. You have a rec open, You need to act while it’s still open. And your rec is an investment. You want to figure out if who you’re interviewing has the skill set you need for the rec.</p>
+<p>But you also have to be human. By “thinking like a human”, you can anticipate the troubles of a candidate (whoa, empathy in an interview?! Yes.)</p>
+<p>My view is that an interviewer must carefully choose and craft his or her questions to an interviewee. Consider:</p>
+<ol start="0" style="list-style-type: decimal">
+<li>Clarify your “Candidate Specification”</li>
+</ol>
+<p>Who do you want to hire, and why? What is he or she doing, on a day to day basis, for the next 6 months to a year? Take the time to canvass your team and your superiors to gain a strong familiarity and orientation of the topic.</p>
+<ol style="list-style-type: decimal">
+<li>Consider what skill or quality your question attempts to reveal.</li>
+</ol>
+<p>Carefully analyze your question. Brainstorm about what it attempts to reveal. Some questions are intricate, and can reveal a variety of qualities about a candidate. Others are straightforward, and not beg for much commentary. Does it fit in your timeframe? Is it too hard, or too easy, for the role it seeks to place? Discard it if none of the questions help your initiative.</p>
+<ol start="2" style="list-style-type: decimal">
+<li>Is it clearly articulated?</li>
+</ol>
+<p>Your method of presentation is essential. If you haven’t practiced this question with a colleague to work out any kinks, you risk overwhelming or frustrating your candidate, for no good reason. Practice your technical or theoretical questions.</p>
+<h1 id="does-fizz-buzz-match-the-criteria">Does Fizz Buzz match the criteria?</h1>
+<p>For an automation engineer, let’s consider if Fizz Buzz matches the above criteria.</p>
+<ol style="list-style-type: decimal">
+<li>Create a list from 1 to 100</li>
+<li>For each item in the list that is divisible by 3, print “fizz”</li>
+<li>For each item in the list that is divisible by 5, print “buzz”</li>
+<li>For each item in the list that is divisible by both 5 and three, print “FizzBuzz”</li>
+</ol>
+<div class="sourceCode"><pre class="sourceCode python"><code class="sourceCode python"><span class="kw">def</span> main():
+    xs <span class="op">=</span> <span class="bu">range</span>(<span class="dv">1</span>,<span class="dv">101</span>)
+    <span class="bu">map</span>(fizz_buzz, xs)
+
+<span class="kw">def</span> fizz_buzz(x):
+    <span class="cf">if</span> x <span class="op">%</span> <span class="dv">15</span> <span class="op">==</span> <span class="dv">0</span>: <span class="co"># Requires commentary...</span>
+        result <span class="op">=</span> <span class="st">&quot;</span><span class="sc">%d</span><span class="ch">\t</span><span class="sc">%s</span><span class="st">&quot;</span> <span class="op">%</span> (x, <span class="st">&quot;FizzBuzz&quot;</span>) <span class="co"># do not use tabs like me</span>
+    <span class="cf">elif</span> x <span class="op">%</span> <span class="dv">3</span> <span class="op">==</span> <span class="dv">0</span>:
+        result <span class="op">=</span> <span class="st">&quot;</span><span class="sc">%d</span><span class="ch">\t</span><span class="sc">%s</span><span class="st">&quot;</span> <span class="op">%</span> (x, <span class="st">&quot;fizz&quot;</span>)
+    <span class="cf">elif</span> x <span class="op">%</span> <span class="dv">5</span> <span class="op">==</span> <span class="dv">0</span>:
+        result <span class="op">=</span> <span class="st">&quot;</span><span class="sc">%d</span><span class="ch">\t</span><span class="sc">%s</span><span class="st">&quot;</span> <span class="op">%</span> (x, <span class="st">&quot;buzz&quot;</span>)
+    <span class="cf">else</span>:
+        result <span class="op">=</span> x
+    <span class="bu">print</span> result
+
+<span class="cf">if</span> <span class="va">__name__</span> <span class="op">==</span> <span class="st">'__main__'</span>:
+    main()</code></pre></div>
+<p>I’ll apply my own criteria to this:</p>
+<ol start="0" style="list-style-type: decimal">
+<li>We want an automation engineer. An automation engineer is is a coder. Since they are coding most of the time, we would prefer they have the following qualities:</li>
+</ol>
+<ul>
+<li>The ability to distill a process explained in plain English into a sequential set of steps</li>
+<li>The ability to check for edge cases</li>
+<li>A high level of familiarity with some particular programming language, as an indicator of experience</li>
+<li>The ability to articulate how the program works, and why certain decisions were made for its implementation</li>
+</ul>
+<ol style="list-style-type: decimal">
+<li>What does this question reveal?</li>
+</ol>
+<p>The same set of attributes above. You see, these are actually the same specification! As they should be.</p>
+<ol start="2" style="list-style-type: decimal">
+<li>Articulation</li>
+</ol>
+<p>The only way to nail this is to air it out. Fizz Buzz’s “specialty” as an interview question is that it gives an interviewer the opportunity to see how closely an interviewee will analyze the problem to detect the edge case. If you check for divisibility of 3 in your first conditional, you’ll short-circuit and not be able to check for divisibility of both 3 and 5 (whether you do this by the modulus operator or not is irrelevant here). Is one such question a good indicator of an interviewee’s skill? No way.</p>
+
+        </div>
+
+        <div id="footer">
+            Site proudly generated by
+            <a href="http://jaspervdj.be/hakyll">Hakyll</a>
+        </div>
+    </body>
+</html>

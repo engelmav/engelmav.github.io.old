@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="x-ua-compatible" content="ie=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>the slow burn - Taming WebApp Testing Complexity</title>
+        <link rel="stylesheet" href="../css/default.css" />
+    </head>
+    <body>
+        <div id="header">
+            <div id="logo">
+                <a href="../">the slow burn</a>
+            </div>
+            <div id="navigation">
+                <a href="../">Home</a>
+                <a href="../about.html">About</a>
+                <a href="../contact.html">Contact</a>
+                <a href="../archive.html">Archive</a>
+            </div>
+        </div>
+
+        <div id="content">
+            <h1>Taming WebApp Testing Complexity</h1>
+            <div class="info">
+    Posted on February  3, 2017
+    
+        by Vincent Engelmann
+    
+</div>
+
+<p>The Page Object “pattern” allows us to clean up tests, enhance logging, reuse utilities, and tame complexity.</p>
+<h2 id="representing-pages">Representing Pages</h2>
+<p>The page representation consists of a <code>Page</code> superclass and any subclass with a name that resembles the page it describes. For example, if you have a login page, you can describe it as:</p>
+<div class="sourceCode"><pre class="sourceCode python"><code class="sourceCode python"><span class="kw">class</span> Login(Page):
+    <span class="kw">def</span> <span class="fu">__init__</span>():
+        Page.__init(<span class="va">self</span>)
+        <span class="va">self</span>.username <span class="op">=</span> TextArea(id_<span class="op">=</span><span class="st">&quot;username&quot;</span>, <span class="st">&quot;username field&quot;</span>)
+        <span class="va">self</span>.password <span class="op">=</span> TextArea(id_<span class="op">=</span><span class="st">&quot;passwd&quot;</span>, <span class="st">&quot;password field&quot;</span>)
+    
+    <span class="kw">def</span> set_username(username):
+        <span class="va">self</span>.username.enter_text(username)
+        <span class="cf">return</span> <span class="va">self</span>
+    
+    <span class="kw">def</span> set_password(pw):
+        <span class="va">self</span>.password.enter_text(pw)
+        <span class="cf">return</span> <span class="va">self</span>
+        TextArea(id_<span class="op">=</span><span class="st">&quot;username&quot;</span>, <span class="st">&quot;username field&quot;</span>)</code></pre></div>
+<p>The <code>Page</code> superclass has the primary responsibility of ensuring all pages use the same <code>wdhelper</code> singleton for all Selenium actions.</p>
+<div class="sourceCode"><pre class="sourceCode python"><code class="sourceCode python"><span class="kw">class</span> Page(<span class="bu">object</span>):
+    <span class="kw">def</span> <span class="fu">__init__</span>():
+        <span class="va">self</span>.wdhelper wdhelper
+        <span class="va">self</span>.wdhelper.register(<span class="va">self</span>)</code></pre></div>
+<h2 id="session-consistency-across-objects">Session Consistency Across Objects</h2>
+<p>The <code>WdHelper</code> singleton maintains the WebDriver session across all pages and elements.</p>
+<h2 id="representing-dom-elements">Representing DOM Elements</h2>
+<div class="sourceCode"><pre class="sourceCode python"><code class="sourceCode python"><span class="im">from</span> selenium.webdriver.remote.webelement <span class="im">import</span> WebElement
+<span class="im">from</span> src.poutils <span class="im">import</span> jsutil
+<span class="im">from</span> src.poutils <span class="im">import</span> wdhelper
+
+
+<span class="kw">class</span> E(<span class="bu">object</span>):
+    <span class="co">&quot;&quot;&quot;</span>
+
+<span class="co">    Represents a generic HTML element.</span>
+
+<span class="co">    &quot;&quot;&quot;</span>
+
+    <span class="kw">def</span> <span class="fu">__init__</span>(<span class="va">self</span>, css<span class="op">=</span><span class="va">None</span>, xpath<span class="op">=</span><span class="va">None</span>, id_<span class="op">=</span><span class="va">None</span>, description):
+        <span class="va">self</span>.selector_type <span class="op">=</span> <span class="va">None</span>
+        <span class="va">self</span>.selector <span class="op">=</span> <span class="va">None</span>
+        <span class="va">self</span>.description <span class="op">=</span> description
+        <span class="cf">if</span> css <span class="kw">is</span> <span class="va">None</span> <span class="kw">and</span> xpath <span class="kw">is</span> <span class="va">None</span> <span class="kw">and</span> id_ <span class="kw">is</span> <span class="va">None</span>:
+            <span class="cf">raise</span> <span class="pp">Exception</span>(<span class="st">&quot;You must specify either css, xpath, or ID selector.&quot;</span>)
+            ...
+
+    <span class="kw">def</span> _wait_for(wait_type: WaitType, timeout: <span class="bu">int</span>) <span class="op">-&gt;</span> WebElement:
+        ...
+
+    <span class="kw">def</span> click(timeout<span class="op">=</span><span class="va">None</span>, auto_scroll<span class="op">=</span><span class="va">False</span>):
+        <span class="va">self</span>.element <span class="op">=</span> <span class="va">self</span>._wait_for(WaitType.CLICKABLE, timeout)
+        <span class="cf">if</span> auto_scroll:
+            jsutil.auto_scroll()
+        <span class="va">self</span>.element.click()
+
+    <span class="kw">def</span> get_text(timeout<span class="op">=</span><span class="va">None</span>):
+        <span class="va">self</span>._wait_for(WaitType.PRESENT, timeout)</code></pre></div>
+<p>We used inheritance to make intent clearer and keep things maintainable:</p>
+<div class="sourceCode"><pre class="sourceCode python"><code class="sourceCode python"><span class="kw">class</span> TextArea(E):
+    <span class="kw">def</span> <span class="fu">__init__</span>(<span class="op">*</span>args, <span class="op">**</span>kwargs):
+        E.<span class="fu">__init__</span>(<span class="va">self</span>, <span class="op">*</span>args, <span class="op">**</span>kwargs)
+
+    <span class="kw">def</span> get_text(timeout<span class="op">=</span><span class="va">None</span>):
+        <span class="co">&quot;&quot;&quot;</span>
+<span class="co">        Overrides the E class's `get_text()` method. Extracts</span>
+<span class="co">        the text from an HTML TextArea element.</span>
+<span class="co">        &quot;&quot;&quot;</span>
+        <span class="va">self</span>.element <span class="op">=</span> <span class="va">self</span>._wait_for(WaitType.PRESENT, timeout)
+        <span class="cf">return</span> <span class="va">self</span>.element.text 
+
+    <span class="kw">def</span> enter_text(text: <span class="bu">str</span>, timeout<span class="op">=</span><span class="va">None</span>) <span class="op">-&gt;</span> <span class="st">'TextArea'</span>:
+        <span class="va">self</span>.element <span class="op">=</span> <span class="va">self</span>._wait_for(WaitType.PRESENT, timeout)
+        <span class="va">self</span>.element.clear().enter_keys(text)</code></pre></div>
+<p>We can re-use <code>E</code>’s methods, implement different behaviors for common actions, and add additional actions appropriate to the element type. WaitType is an Enum.</p>
+
+        </div>
+
+        <div id="footer">
+            Site proudly generated by
+            <a href="http://jaspervdj.be/hakyll">Hakyll</a>
+        </div>
+    </body>
+</html>

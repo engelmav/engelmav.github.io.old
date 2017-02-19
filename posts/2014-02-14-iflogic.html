@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="x-ua-compatible" content="ie=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>the slow burn - The Logical `If`</title>
+        <link rel="stylesheet" href="../css/default.css" />
+    </head>
+    <body>
+        <div id="header">
+            <div id="logo">
+                <a href="../">the slow burn</a>
+            </div>
+            <div id="navigation">
+                <a href="../">Home</a>
+                <a href="../about.html">About</a>
+                <a href="../contact.html">Contact</a>
+                <a href="../archive.html">Archive</a>
+            </div>
+        </div>
+
+        <div id="content">
+            <h1>The Logical `If`</h1>
+            <div class="info">
+    Posted on February 14, 2014
+    
+        by Vincent Engelmann
+    
+</div>
+
+<pre><code>      p | q | (p -&gt; q)
+     ________________   
+1)    T | T |    T
+2)    T | F |    F
+3)    F | T |    T
+4)    F | F |    T</code></pre>
+<p>Lines <code>3</code> and <code>4</code> just made no sense to me.</p>
+<p>If <code>p</code> is FALSE and <code>q</code> is TRUE, how does that make the statement true?</p>
+<p>If <code>p</code> is FALSE and <code>q</code> is FALSE, how does that make the statement true?</p>
+<p>Luckily, as is usually the case, there are a wealth of explanations about this on the StackExchange site (thank you, <a href="http://blog.codinghorror.com/about-me">Mr Atwood</a>).</p>
+<p>Two concepts have proved most helpful:</p>
+<ol style="list-style-type: decimal">
+<li>P and Q are linked to each other. You can’t affect one without affecting another (it’s a sort of interdependence)</li>
+<li>You need <em>context</em> for your <code>P</code>s and <code>Q</code>s to really see why this is the case</li>
+</ol>
+<p>How do you provide context? Well, you can make those lone <code>P</code>s and <code>Q</code>s actual mathematical functions instead of just symbols. It’ll help give more “meaning” to the concept of <code>True</code> and <code>False</code>.</p>
+<p>So let’s make a couple of function examples (it appears we actually need <em>two</em> in order to complete our context). We’ll start by giving an example of the fourth line of the truth table.</p>
+<p>Example 1:</p>
+<pre><code>p =  x &gt; 0
+
+q = 2x &gt; 0</code></pre>
+<p>Example 2:</p>
+<pre><code>p =     x &gt; 0
+
+q = x + 1 &gt; 0</code></pre>
+<p>Remember, the results of these functions is a simple <code>True</code> or <code>False</code> (we are “assigning” this boolean to the <code>p</code> or <code>q</code> at the beginning of these example functions).</p>
+<p>Now in human-speak, example 1 becomes:</p>
+<blockquote>
+<blockquote>
+<p><code>2x</code> is positive when <code>x</code> is positive.</p>
+</blockquote>
+</blockquote>
+<p>Example 2 becomes:</p>
+<blockquote>
+<blockquote>
+<p>If <code>x</code> is positive, then so is <code>x+1</code>.</p>
+</blockquote>
+</blockquote>
+<p>Let’s run example 1 into reality. Meaning, we’ll choose a number and plug it into <code>x</code>. We’ll make <code>x = -1</code>.</p>
+<p>In doing so, our first example becomes:</p>
+<pre><code>p = (-1) &gt; 0</code></pre>
+<p><code>p</code> here will return <code>False</code>!</p>
+<p>and</p>
+<pre><code>q = 2(-1) &gt; 0</code></pre>
+<p><code>q</code> here will <em>also</em> return <code>False</code>!</p>
+<p>So let’s put <em>that</em> situation into plain English.</p>
+<blockquote>
+<blockquote>
+<p>If you make <code>p</code> false, you’re making q false, given what <code>p</code> and <code>q</code> stand for.</p>
+</blockquote>
+</blockquote>
+<p>Here’s the important part. What you are checking here is <em>the truth of that very statement!</em></p>
+<p>Rephrased as a question:</p>
+<blockquote>
+<blockquote>
+<p>Is it true that if you make <code>p</code> false, that <code>q</code> is false… <em>given what <code>p</code> and <code>q</code> stand for</em>?</p>
+</blockquote>
+</blockquote>
+<p>…whereupon you should find it in your mind to say “Yes!” (e.g., <code>True</code>)</p>
+<p>It is <em>true</em> that if you make <code>p</code> false, you will make <code>q</code> false.</p>
+<p>This is a slight re-write of Jyrki’s response <a href="http://math.stackexchange.com/a/48181/96367">here</a>.</p>
+<p>Anyway, that was line 4 of the truth table. Now for line 3.</p>
+<p>For line 3 we go to example 2. Let’s put example 2 through a reality check. We’ll use <code>x = -1/2</code>.</p>
+<pre><code>p = (-1/2) &gt; 0</code></pre>
+<p><code>p</code> returns <code>False</code>!</p>
+<p>and</p>
+<pre><code>q = (-1/2) + 1 &gt; 0</code></pre>
+<p><code>q</code> returns <code>True</code>!</p>
+<p>Again we put this into plain English.</p>
+<blockquote>
+<blockquote>
+<p>*Under the conditions given, if you make <code>p</code> false, you’ll make <code>q</code> true.</p>
+</blockquote>
+</blockquote>
+<p>And again - you are <em>verifying the truth of this above statement</em>, not the individual <code>p</code>s and <code>qs</code>.</p>
+<p>I find the question-form helpful, so here it goes:</p>
+<blockquote>
+<blockquote>
+<p>Under the conditions given, if you make <code>p</code> false, will this make <code>q</code> true?</p>
+</blockquote>
+</blockquote>
+<p>To which you’d answer, “Yup, <em>if you use those functions</em>, that’s what happens.” (e.g., the result is <code>True</code>.).</p>
+<p>There are two plain English phrases I have used that should show <em>context</em>:</p>
+<ul>
+<li>“…given what <code>p</code> and <code>q</code> stand for``” and</li>
+<li>“Under the conditions given…”</li>
+</ul>
+<p>Both of these mean, we have provided an environment for our <code>if-then</code> – it cannot stand alone!</p>
+
+        </div>
+
+        <div id="footer">
+            Site proudly generated by
+            <a href="http://jaspervdj.be/hakyll">Hakyll</a>
+        </div>
+    </body>
+</html>
